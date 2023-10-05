@@ -67,6 +67,13 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 		else if (transform.name == "RFoot") {
 			player.right_foot = &transform;
 		}
+		else if (transform.name.substr(0, 4) == "Wood") {
+			woods.emplace_back(&transform);
+		}
+		else if (transform.name.substr(0, 4) == "Fire") {
+			fires.emplace_back(&transform);
+			transform.scale = glm::vec3(0);
+		}
 
 	}
 
@@ -326,7 +333,7 @@ void PlayMode::update(float elapsed) {
 		float const &rot_alpha = glm::clamp(CameraRotateSpeed * elapsed / glm::abs(glm::roll(target) - glm::roll(player.camera_base->rotation)), 0.0f, 1.0f);
 		if (rot_alpha > 0) {
 			player.camera_base->rotation = glm::slerp(player.camera_base->rotation, target, rot_alpha);
-		}std::cout << player.transform->position.x << "\n";
+		}
 
 		float const &scale_alpha = glm::clamp((player.transform->position.z - 10.0f) / 20.0f, 0.0f, 1.0f);
 		player.camera->scale = glm::mix(30.0f, 70.0f, scale_alpha);
@@ -338,6 +345,24 @@ void PlayMode::update(float elapsed) {
 		//update player's position to respect walking:
 		player.transform->position = walkmesh->to_world_point(player.at);
 		player.camera_base->position = player.transform->position;
+	}
+
+	constexpr float fire_radius = 2.0f;
+	for (int i = 0; i < fires.size(); i++) {
+		if (glm::distance(player.transform->position, fires[i]->make_local_to_world() * glm::vec4(fires[i]->position,1.0f)) < fire_radius) {
+			fires[i]->scale = glm::vec3(1.0f);
+			fires.erase(fires.begin() + i);
+
+			if (num_placed < 6) {
+				woods[num_placed]->scale = glm::vec3(0);
+				woods[num_placed+1]->scale = glm::vec3(0);
+			}
+			else {
+				woods[num_placed]->scale = glm::vec3(0);
+			}
+
+			num_placed += 2;
+		}
 	}
 
 	//reset button press counters:
@@ -391,12 +416,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("WASD to move.",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("WASD to move.",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
