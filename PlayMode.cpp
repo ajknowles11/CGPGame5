@@ -303,6 +303,20 @@ void PlayMode::update(float elapsed) {
 			}
 		}
 
+		if (player.transform->position.z >= 30 && player.transform->position.x < 30) {
+			player.zone = player.Top;
+		}
+		else if (player.transform->position.x < -30 && glm::abs(player.transform->position.y) < 30 ) {
+			player.zone = player.Side;
+		}
+		else if (player.transform->position.y > 0) {
+			player.zone = player.Back;
+		}
+		else {
+			player.zone = player.Front;
+		}
+		std::cout << player.zone << "\n";
+
 		// if (remain != glm::vec3(0.0f)) {
 		// 	std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
 		// }
