@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Firelight
 
-Author: (TODO: your name)
+Author: Andrew Knowles
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: This game is about placing firewood around a mountain in a third person, orthographic view. There's no fire yet but there's a walkmesh and custom terrain and textures for the player and mountain.
 
 Screen Shot:
 
@@ -10,9 +10,9 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+WASD to move. Try to reach all the fires around the map and get rid of the planks you're carrying.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+The lack of shadows and the orthographic view can make certain spots steeper than they appear, which is why you sometimes move a bit slower than you may expect (movement direction is always z-up).
 
 This game was built with [NEST](NEST.md).
 
