@@ -33,7 +33,10 @@ struct PlayMode : Mode {
 		WalkPoint at;
 		//transform is at player's feet and will be yawed by mouse left/right motion:
 		Scene::Transform *transform = nullptr;
-		//camera is at player's head and will be pitched by mouse up/down motion:
+		//ortho camera following player
 		Scene::Camera *camera = nullptr;
+		//camera base moves camera with player, allowing camera to ignore player rotation, 
+		// and player to move without camera vertical rotation
+		Scene::Transform *camera_base = nullptr;
 	} player;
 };

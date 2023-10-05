@@ -13,23 +13,23 @@
 
 #include <random>
 
-GLuint phonebank_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > phonebank_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("phone-bank.pnct"));
-	phonebank_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+GLuint mountain_meshes_for_lit_color_texture_program = 0;
+Load< MeshBuffer > mountain_meshes(LoadTagDefault, []() -> MeshBuffer const * {
+	MeshBuffer const *ret = new MeshBuffer(data_path("mountain.pnct"));
+	mountain_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("phone-bank.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = phonebank_meshes->lookup(mesh_name);
+Load< Scene > mountain_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("mountain.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+		Mesh const &mesh = mountain_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline.vao = phonebank_meshes_for_lit_color_texture_program;
+		drawable.pipeline.vao = mountain_meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -39,29 +39,25 @@ Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const * {
 
 WalkMesh const *walkmesh = nullptr;
 Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("phone-bank.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("mountain.w"));
 	walkmesh = &ret->lookup("WalkMesh");
 	return ret;
 });
 
-PlayMode::PlayMode() : scene(*phonebank_scene) {
-	//create a player transform:
-	scene.transforms.emplace_back();
-	player.transform = &scene.transforms.back();
+PlayMode::PlayMode() : scene(*mountain_scene) {
+
+	for (auto &transform : scene.transforms) {
+		if (transform.name == "Player") {
+			player.transform = &transform;
+		}
+		else if (transform.name == "CamBase") {
+			player.camera_base = &transform;
+		}
+	}
 
 	//create a player camera attached to a child of the player transform:
-	scene.transforms.emplace_back();
-	scene.cameras.emplace_back(&scene.transforms.back());
+	assert(scene.cameras.size() > 0);
 	player.camera = &scene.cameras.back();
-	player.camera->fovy = glm::radians(60.0f);
-	player.camera->near = 0.01f;
-	player.camera->transform->parent = player.transform;
-
-	//player's eyes are 1.8 units above the ground:
-	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
-
-	//rotate camera facing direction (-z) to player facing direction (+y):
-	player.camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	//start player walking at nearest walk point:
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
@@ -109,29 +105,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
-		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-			SDL_SetRelativeMouseMode(SDL_TRUE);
-			return true;
-		}
-	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			glm::vec2 motion = glm::vec2(
-				evt.motion.xrel / float(window_size.y),
-				-evt.motion.yrel / float(window_size.y)
-			);
-			glm::vec3 upDir = walkmesh->to_world_smooth_normal(player.at);
-			player.transform->rotation = glm::angleAxis(-motion.x * player.camera->fovy, upDir) * player.transform->rotation;
-
-			float pitch = glm::pitch(player.camera->transform->rotation);
-			pitch += motion.y * player.camera->fovy;
-			//camera looks down -z (basically at the player's feet) when pitch is at zero.
-			pitch = std::min(pitch, 0.95f * 3.1415926f);
-			pitch = std::max(pitch, 0.05f * 3.1415926f);
-			player.camera->transform->rotation = glm::angleAxis(pitch, glm::vec3(1.0f, 0.0f, 0.0f));
-
-			return true;
-		}
-	}
+		return true;
+	} 
 
 	return false;
 }
@@ -140,7 +115,7 @@ void PlayMode::update(float elapsed) {
 	//player walking:
 	{
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
+		constexpr float PlayerSpeed = 12.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -151,7 +126,7 @@ void PlayMode::update(float elapsed) {
 		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
 
 		//get move in world coordinate system:
-		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
+		glm::vec3 remain = player.camera_base->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
 
 		//using a for() instead of a while() here so that if walkpoint gets stuck in
 		// some awkward case, code will not infinite loop:
@@ -202,24 +177,7 @@ void PlayMode::update(float elapsed) {
 
 		//update player's position to respect walking:
 		player.transform->position = walkmesh->to_world_point(player.at);
-
-		{ //update player's rotation to respect local (smooth) up-vector:
-			
-			glm::quat adjust = glm::rotation(
-				player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
-				walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
-			);
-			player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
-		}
-
-		/*
-		glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		glm::vec3 right = frame[0];
-		//glm::vec3 up = frame[1];
-		glm::vec3 forward = -frame[2];
-
-		camera->transform->position += move.x * right + move.y * forward;
-		*/
+		player.camera_base->position = player.transform->position;
 	}
 
 	//reset button press counters:

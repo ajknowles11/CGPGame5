@@ -86,11 +86,17 @@ struct Scene {
 		Camera(Transform *transform_) : transform(transform_) { assert(transform); }
 		Transform * transform;
 		//NOTE: cameras are directed along their -z axis
+		enum CameraMode {
+			Perspective, 
+			Orthographic
+		} mode = Perspective;
 
-		//perspective camera parameters:
-		float fovy = glm::radians(60.0f); //vertical fov (in radians)
+		//camera parameters:
+		float fovy = glm::radians(60.0f); //vertical fov (in radians) (perspective only)
+		float scale = 1.0f; //orthographic scale (orthographic only)
 		float aspect = 1.0f; //x / y
 		float near = 0.01f; //near plane
+		float far = 1000.0f; //far plane
 		//computed from the above:
 		glm::mat4 make_projection() const;
 	};

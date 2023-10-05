@@ -74,7 +74,8 @@ glm::mat4x3 Scene::Transform::make_world_to_local() const {
 //-------------------------
 
 glm::mat4 Scene::Camera::make_projection() const {
-	return glm::infinitePerspective( fovy, aspect, near );
+	if (mode == Perspective) return glm::infinitePerspective( fovy, aspect, near );
+	else return glm::ortho(-aspect * scale / 2.0f, aspect * scale / 2.0f, -scale / 2.0f, scale / 2.0f, near, far);
 }
 
 //-------------------------
@@ -267,12 +268,22 @@ void Scene::load(std::string const &filename,
 		if (c.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains camera entry with invalid transform index (" + std::to_string(c.transform) + ")");
 		}
+		if (std::string(c.type, 4) == "orth") {
+			cameras.emplace_back(hierarchy_transforms[c.transform]);
+			Camera *camera = &cameras.back();
+			camera->mode = Camera::Orthographic;
+			camera->scale = c.data;
+			camera->near = c.clip_near;
+			camera->far = c.clip_far;
+			continue;
+		}
 		if (std::string(c.type, 4) != "pers") {
-			std::cout << "Ignoring non-perspective camera (" + std::string(c.type, 4) + ") stored in file." << std::endl;
+			std::cout << "Ignoring non-perspective and non-orthographic camera (" + std::string(c.type, 4) + ") stored in file." << std::endl;
 			continue;
 		}
 		cameras.emplace_back(hierarchy_transforms[c.transform]);
 		Camera *camera = &cameras.back();
+		camera->mode = Camera::Perspective;
 		camera->fovy = c.data / 180.0f * 3.1415926f; //FOV is stored in degrees; convert to radians.
 		camera->near = c.clip_near;
 		//N.b. far plane is ignored because cameras use infinite perspective matrices.
