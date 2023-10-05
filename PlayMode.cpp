@@ -303,27 +303,33 @@ void PlayMode::update(float elapsed) {
 			}
 		}
 
-		if (player.transform->position.z >= 30 && player.transform->position.x < 30) {
+		constexpr float CameraRotateSpeed = 4.0f;
+		glm::quat target;
+		if (player.transform->position.z >= 30 && glm::abs(player.transform->position.x) < 24) {
 			player.zone = player.Top;
-			player.camera_base->rotation = glm::angleAxis(glm::pi<float>()/4.0f - 0.1f, glm::vec3(0,0,1)) *
+			target = glm::angleAxis(glm::pi<float>()/4.0f - 0.1f, glm::vec3(0,0,1)) *
 											glm::angleAxis(-0.1f, glm::vec3(1,0,0));
 		}
 		else if (player.transform->position.x < -30 && glm::abs(player.transform->position.y) < 60 ) {
 			player.zone = player.Side;
-			player.camera_base->rotation = glm::angleAxis(5.0f*glm::pi<float>()/4.0f, glm::vec3(0,0,1));
+			target = glm::angleAxis(5.0f*glm::pi<float>()/4.0f, glm::vec3(0,0,1));
 		}
 		else if (player.transform->position.y > 0) {
 			player.zone = player.Back;
-			player.camera_base->rotation = glm::angleAxis(3.0f*glm::pi<float>()/4.0f, glm::vec3(0,0,1));
+			target = glm::angleAxis(3.0f*glm::pi<float>()/4.0f, glm::vec3(0,0,1));
 		}
 		else {
 			player.zone = player.Front;
-			player.camera_base->rotation = glm::angleAxis(-glm::pi<float>()/4.0f, glm::vec3(0,0,1));
+			target = glm::angleAxis(-glm::pi<float>()/4.0f, glm::vec3(0,0,1));
 		}
 
-		float const &alpha = glm::clamp((player.transform->position.z - 10.0f) / 20.0f, 0.0f, 1.0f);
-		player.camera->scale = glm::mix(30.0f, 100.0f, alpha);
-		std::cout << player.zone << "\n";
+		float const &rot_alpha = glm::clamp(CameraRotateSpeed * elapsed / glm::abs(glm::roll(target) - glm::roll(player.camera_base->rotation)), 0.0f, 1.0f);
+		if (rot_alpha > 0) {
+			player.camera_base->rotation = glm::slerp(player.camera_base->rotation, target, rot_alpha);
+		}std::cout << player.transform->position.x << "\n";
+
+		float const &scale_alpha = glm::clamp((player.transform->position.z - 10.0f) / 20.0f, 0.0f, 1.0f);
+		player.camera->scale = glm::mix(30.0f, 70.0f, scale_alpha);
 
 		// if (remain != glm::vec3(0.0f)) {
 		// 	std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
