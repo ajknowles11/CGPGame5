@@ -3,7 +3,6 @@
 #include "read_write_chunk.hpp"
 
 #include <glm/gtx/norm.hpp>
-#include <glm/gtx/normal.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include <iostream>
@@ -160,7 +159,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	
 	time = std::min(1.0f, min_time);
 	
-	assert(time > 0.0f);
+	assert(time >= 0.0f);
 	glm::vec3 const &weights = start.weights + 
 			time * (dest_bary - start.weights);
 	
@@ -214,8 +213,8 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 		end.weights = glm::vec3(start.weights.y, start.weights.x, 0.0f);
 
 		//make 'rotation' the rotation that takes (start.indices)'s normal to (end.indices)'s normal:
-		rotation = glm::rotation(glm::triangleNormal(vertices[start.indices.x], vertices[start.indices.y], vertices[start.indices.z]), 
-								 glm::triangleNormal(vertices[end.indices.x], vertices[end.indices.y], vertices[end.indices.z])); 
+		rotation = glm::rotation(start.weights.x * normals[start.indices.x] + start.weights.y * normals[start.indices.y], 
+								 end.weights.x * normals[end.indices.x] + end.weights.y * normals[end.indices.y]); 
 
 		return true;
 	} else {
