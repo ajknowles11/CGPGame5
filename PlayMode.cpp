@@ -128,6 +128,21 @@ void PlayMode::update(float elapsed) {
 		//get move in world coordinate system:
 		glm::vec3 remain = player.camera_base->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
 
+		constexpr float PlayerRotateSpeed = 10.0f;
+		if (remain != glm::vec3(0.0f)) {
+			float yaw = glm::roll(player.transform->rotation);
+			float yaw_target = glm::roll(glm::rotation(glm::vec3(-1,0,0), glm::normalize(remain)));
+			if (glm::abs(yaw_target - yaw) > glm::pi<float>()) {
+				if (yaw < 0) yaw_target -= 2 * glm::pi<float>();
+				else yaw_target += 2 * glm::pi<float>(); 
+			}
+			float const &alpha = glm::clamp((PlayerRotateSpeed * elapsed) / glm::abs(yaw_target - yaw), 0.0f, 1.0f);
+			if (alpha >= 0 && alpha <= 1) {
+				float const &yaw_new = glm::mix(yaw, yaw_target, alpha);
+				player.transform->rotation = glm::angleAxis(yaw_new, glm::vec3(0,0,1));
+			}
+		}
+
 		//using a for() instead of a while() here so that if walkpoint gets stuck in
 		// some awkward case, code will not infinite loop:
 		for (uint32_t iter = 0; iter < 10; ++iter) {
@@ -171,9 +186,9 @@ void PlayMode::update(float elapsed) {
 			}
 		}
 
-		if (remain != glm::vec3(0.0f)) {
-			std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
-		}
+		// if (remain != glm::vec3(0.0f)) {
+		// 	std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
+		// }
 
 		//update player's position to respect walking:
 		player.transform->position = walkmesh->to_world_point(player.at);
