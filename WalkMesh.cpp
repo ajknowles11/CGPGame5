@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <string>
 
-WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::vec3 > const &normals_, std::vector< glm::uvec3 > const &triangles_)
-	: vertices(vertices_), normals(normals_), triangles(triangles_) {
+WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::vec3 > const &normals_, std::vector< glm::uvec4 > const &colors_, std::vector< glm::uvec3 > const &triangles_)
+	: vertices(vertices_), normals(normals_), colors(colors_), triangles(triangles_) {
 
 	//construct next_vertex map (maps each edge to the next vertex in the triangle):
 	next_vertex.reserve(triangles.size()*3);
@@ -232,6 +232,9 @@ WalkMeshes::WalkMeshes(std::string const &filename) {
 	std::vector< glm::vec3 > normals;
 	read_chunk(file, "n...", &normals);
 
+	std::vector< uint8_t > colors;
+	read_chunk(file, "c...", &colors);
+
 	std::vector< glm::uvec3 > triangles;
 	read_chunk(file, "tri0", &triangles);
 
@@ -271,6 +274,7 @@ WalkMeshes::WalkMeshes(std::string const &filename) {
 		//copy vertices/normals:
 		std::vector< glm::vec3 > wm_vertices(vertices.begin() + e.vertex_begin, vertices.begin() + e.vertex_end);
 		std::vector< glm::vec3 > wm_normals(normals.begin() + e.vertex_begin, normals.begin() + e.vertex_end);
+		std::vector< glm::uvec4 > wm_colors(colors.begin() + e.vertex_begin, colors.end() + e.vertex_end);
 
 		//remap triangles:
 		std::vector< glm::uvec3 > wm_triangles; wm_triangles.reserve(e.triangle_end - e.triangle_begin);
@@ -289,7 +293,7 @@ WalkMeshes::WalkMeshes(std::string const &filename) {
 		
 		std::string name(names.begin() + e.name_begin, names.begin() + e.name_end);
 
-		auto ret = meshes.emplace(name, WalkMesh(wm_vertices, wm_normals, wm_triangles));
+		auto ret = meshes.emplace(name, WalkMesh(wm_vertices, wm_normals, wm_colors, wm_triangles));
 		if (!ret.second) {
 			throw std::runtime_error("WalkMesh with duplicated name '" + name + "' in '" + filename + "'");
 		}
