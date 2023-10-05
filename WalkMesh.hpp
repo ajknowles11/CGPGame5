@@ -22,14 +22,13 @@ struct WalkMesh {
 	//Walk mesh will keep track of triangles, vertices:
 	std::vector< glm::vec3 > vertices;
 	std::vector< glm::vec3 > normals; //normals for interpolated 'up' direction
-	std::vector< glm::uvec4 > colors; //added to support unique camera behavior and interactions
 	std::vector< glm::uvec3 > triangles; //CCW-oriented
 
 	//This "next vertex" map includes [a,b]->c, [b,c]->a, and [c,a]->b for each triangle (a,b,c), and is useful for checking what's over an edge from a given point:
 	std::unordered_map< glm::uvec2, uint32_t > next_vertex;
 
 	//Construct new WalkMesh and build next_vertex structure:
-	WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::vec3 > const &normals_, std::vector< glm::uvec4 > const &colors_, std::vector< glm::uvec3 > const &triangles_);
+	WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::vec3 > const &normals_, std::vector< glm::uvec3 > const &triangles_);
 
 	//used to initialize walking -- finds the closest point on the walk mesh:
 	// (should only need to call this at the start of a level)

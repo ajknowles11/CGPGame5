@@ -94,9 +94,6 @@ positions = b''
 normals = b''
 triangles = b''
 
-#color data for special features (cam movement and interactions)
-colors = b''
-
 #strings contains the mesh names:
 strings = b''
 
@@ -105,7 +102,6 @@ index = b''
 
 position_count = 0
 normal_count = 0
-color_count = 0
 triangle_count = 0
 
 for obj in bpy.data.objects:
@@ -147,22 +143,17 @@ for obj in bpy.data.objects:
 	vertex_begin = position_count
 	triangle_begin = triangle_count
 
-	mesh_colors = obj.data.vertex_colors.active.data
-
 	#Helper to write referenced vertices:
 	vertex_inds = dict() #for each referenced vertex, store new index
 	vertex_normals = [] #for each referenced vertex, store list of normals
-	vertex_colors = []
-	def write_vertex(index, normal, color):
+	def write_vertex(index, normal):
 		global positions, position_count, vertex_refs, vertex_normals
 		if index not in vertex_inds:
 			vertex_inds[index] = len(vertex_inds)
 			vertex_normals.append([])
-			vertex_colors.append([])
 			positions += struct.pack('fff', *mesh.vertices[index].co)
 			position_count += 1
 		vertex_normals[vertex_inds[index]].append(normal)
-		vertex_colors[vertex_inds[index]].append(color)
 		return struct.pack('I', vertex_begin + vertex_inds[index])
 
 	#write the mesh triangles:
@@ -178,7 +169,7 @@ for obj in bpy.data.objects:
 
 		for i in range(0,3):
 			assert(mesh.loops[poly.loop_indices[i]].vertex_index == poly.vertices[i])
-			triangles += write_vertex(poly.vertices[i], mesh.loops[poly.loop_indices[i]].normal, mesh_colors[poly.loop_indices[i]].color)
+			triangles += write_vertex(poly.vertices[i], mesh.loops[poly.loop_indices[i]].normal)
 
 		triangle_count += 1
 	
@@ -198,21 +189,6 @@ for obj in bpy.data.objects:
 	
 	assert(normal_count == position_count)
 
-	#now colors
-	for cs in vertex_colors:
-		avg = []
-		for c in cs:
-			if avg == []: avg = c
-			else: 
-				avg[0] = avg[0] + c[0]
-				avg[1] = avg[1] + c[1]
-				avg[2] = avg[2] + c[2]
-		avg[0] = avg[0] / len(cs)
-		avg[1] = avg[1] / len(cs)
-		avg[2] = avg[2] / len(cs)
-		colors += struct.pack('BBBB', int(avg[0] * 255), int(avg[1] * 255), int(avg[2] * 255), 255)
-		color_count += 1
-
 	vertex_end = position_count
 	triangle_end = triangle_count
 
@@ -230,7 +206,6 @@ for obj in bpy.data.objects:
 #check that we wrote as much data as anticipated:
 assert(position_count * 3*4 == len(positions))
 assert(normal_count * 3*4 == len(normals))
-assert(color_count * 4 == len(colors))
 
 #write the data chunk and index chunk to an output blob:
 blob = open(outfile, 'wb')
@@ -243,7 +218,6 @@ def write_chunk(magic, data):
 #first chunk: the positions
 write_chunk(b'p...', positions)
 write_chunk(b'n...', normals)
-write_chunk(b'c...', colors)
 write_chunk(b'tri0', triangles)
 write_chunk(b'str0', strings)
 write_chunk(b'idxA', index)
@@ -253,7 +227,6 @@ blob.close()
 print("Wrote " + str(wrote) + " bytes [== " +
 	str(len(positions)+8) + " bytes of positions + " +
 	str(len(normals)+8) + " bytes of normals + " +
-	str(len(colors)+8) + " bytes of colors + " +
 	str(len(triangles)+8) + " bytes of triangles + " +
 	str(len(strings)+8) + " bytes of strings + " +
 	str(len(index)+8) + " bytes of index] to '" + outfile + "'")

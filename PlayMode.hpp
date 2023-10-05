@@ -45,6 +45,13 @@ struct PlayMode : Mode {
 		Scene::Transform *right_foot = nullptr;
 
 		Scene::Drawable *base_mesh = nullptr;
+
+		enum MountainZone {
+			Front,
+			Side,
+			Top,
+			Back
+		} zone = Front;
 	} player;
 
 	float const &walk_anim_time = 0.8f;
