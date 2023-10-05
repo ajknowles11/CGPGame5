@@ -348,7 +348,7 @@ void PlayMode::update(float elapsed) {
 	}
 
 	constexpr float fire_radius = 2.0f;
-	for (int i = 0; i < fires.size(); i++) {
+	for (size_t i = 0; i < fires.size(); i++) {
 		if (glm::distance(player.transform->position, fires[i]->make_local_to_world() * glm::vec4(fires[i]->position,1.0f)) < fire_radius) {
 			fires[i]->scale = glm::vec3(1.0f);
 			fires.erase(fires.begin() + i);
