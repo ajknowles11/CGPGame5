@@ -20,6 +20,10 @@ Load< MeshBuffer > mountain_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	return ret;
 });
 
+Load< Scene::Texture > player_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("player_texture.png"));
+});
+
 Load< Scene > mountain_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("mountain.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = mountain_meshes->lookup(mesh_name);
@@ -61,6 +65,27 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 		}
 
 	}
+
+	for (auto &drawable : scene.drawables) {
+		if (drawable.transform->name == "Player") {
+			player.base_mesh = &drawable;
+		}
+	}
+
+	GLuint tex = 0;
+	glGenTextures(1, &tex);
+	glGenTextures(1, &tex);
+
+	glBindTexture(GL_TEXTURE_2D, tex);
+	player.base_mesh->pipeline.textures->texture = tex;
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, player_texture->size.x, player_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, player_texture->pixels.data());
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	//create a player camera attached to a child of the player transform:
 	assert(scene.cameras.size() > 0);

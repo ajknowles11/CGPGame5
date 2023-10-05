@@ -122,6 +122,13 @@ struct Scene {
 		float spot_fov = glm::radians(45.0f); //spot cone fov (in radians)
 	};
 
+	struct Texture {
+		Texture(std::string const &filename);
+		~Texture() {}
+		std::vector< glm::u8vec4 > pixels;
+    	glm::uvec2 size = glm::vec2(0);
+	};
+
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;

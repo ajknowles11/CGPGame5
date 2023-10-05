@@ -41,6 +41,8 @@ struct PlayMode : Mode {
 
 		Scene::Transform *left_foot = nullptr;
 		Scene::Transform *right_foot = nullptr;
+
+		Scene::Drawable *base_mesh = nullptr;
 	} player;
 
 	float const &walk_anim_time = 0.8f;

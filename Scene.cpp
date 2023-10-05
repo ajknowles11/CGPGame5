@@ -2,6 +2,7 @@
 
 #include "gl_errors.hpp"
 #include "read_write_chunk.hpp"
+#include "load_save_png.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -385,4 +386,8 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	for (auto &l : lights) {
 		l.transform = transform_to_transform.at(l.transform);
 	}
+}
+
+Scene::Texture::Texture(std::string const &filename) {
+    load_png(filename, &size, &pixels, LowerLeftOrigin);
 }
