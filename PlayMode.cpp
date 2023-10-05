@@ -53,6 +53,13 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 		else if (transform.name == "CamBase") {
 			player.camera_base = &transform;
 		}
+		else if (transform.name == "LFoot") {
+			player.left_foot = &transform;
+		}
+		else if (transform.name == "RFoot") {
+			player.right_foot = &transform;
+		}
+
 	}
 
 	//create a player camera attached to a child of the player transform:
@@ -115,7 +122,7 @@ void PlayMode::update(float elapsed) {
 	//player walking:
 	{
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 12.0f;
+		constexpr float PlayerSpeed = 15.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -128,20 +135,79 @@ void PlayMode::update(float elapsed) {
 		//get move in world coordinate system:
 		glm::vec3 remain = player.camera_base->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
 
-		constexpr float PlayerRotateSpeed = 10.0f;
 		if (remain != glm::vec3(0.0f)) {
-			float yaw = glm::roll(player.transform->rotation);
-			float yaw_target = glm::roll(glm::rotation(glm::vec3(-1,0,0), glm::normalize(remain)));
-			if (glm::abs(yaw_target - yaw) > glm::pi<float>()) {
-				if (yaw < 0) yaw_target -= 2 * glm::pi<float>();
-				else yaw_target += 2 * glm::pi<float>(); 
+
+			//rotate player to face movement direction
+			{
+				constexpr float PlayerRotateSpeed = 10.0f;
+
+				float yaw = glm::roll(player.transform->rotation);
+				float yaw_target = glm::roll(glm::rotation(glm::vec3(-1,0,0), glm::normalize(remain)));
+				if (glm::abs(yaw_target - yaw) > glm::pi<float>()) {
+					if (yaw < 0) yaw_target -= 2 * glm::pi<float>();
+					else yaw_target += 2 * glm::pi<float>(); 
+				}
+				float const &alpha = glm::clamp((PlayerRotateSpeed * elapsed) / glm::abs(yaw_target - yaw), 0.0f, 1.0f);
+				if (alpha >= 0 && alpha <= 1) {
+					float const &yaw_new = glm::mix(yaw, yaw_target, alpha);
+					player.transform->rotation = glm::angleAxis(yaw_new, glm::vec3(0,0,1));
+				}
 			}
-			float const &alpha = glm::clamp((PlayerRotateSpeed * elapsed) / glm::abs(yaw_target - yaw), 0.0f, 1.0f);
-			if (alpha >= 0 && alpha <= 1) {
-				float const &yaw_new = glm::mix(yaw, yaw_target, alpha);
-				player.transform->rotation = glm::angleAxis(yaw_new, glm::vec3(0,0,1));
+
+			//advance walk anim
+			walk_anim_acc += elapsed;
+
+		}
+		else {
+			//reset walk anim
+			if (walk_anim_acc > 0) {
+				if (walk_anim_acc >= 0.75f * walk_anim_time) {
+					walk_anim_acc += elapsed;
+					if (walk_anim_acc >= walk_anim_time) {
+						walk_anim_acc = 0;
+					}
+				}
+				else if (walk_anim_acc >= 0.5f * walk_anim_time) {
+					walk_anim_acc -= elapsed;
+					if (walk_anim_acc <= 0.5f * walk_anim_time) {
+						walk_anim_acc = 0;
+					}
+				}
+				if (walk_anim_acc >= 0.25f * walk_anim_time) {
+					walk_anim_acc += elapsed;
+					if (walk_anim_acc >= 0.5f * walk_anim_time) {
+						walk_anim_acc = 0;
+					}
+				}
+				else if (walk_anim_acc > 0) {
+					walk_anim_acc -= elapsed;
+					if (walk_anim_acc < 0) {
+						walk_anim_acc = 0;
+					}
+				}
 			}
 		}
+
+		//move feet
+		{
+			while (walk_anim_acc > walk_anim_time) {
+				walk_anim_acc -= walk_anim_time;
+			}
+
+			float alpha = walk_anim_acc / walk_anim_time;
+			if (alpha >= 0.75f) {
+				alpha = 2.0f * (alpha - 0.75f);
+			}
+			else if (alpha >= 0.25f) {
+				alpha = 1 - 2.0f * (alpha - 0.25f);
+			}
+			else {
+				alpha = 2.0f * alpha + 0.5f;
+			}
+			player.left_foot->rotation = glm::slerp(back_foot_rot, front_foot_rot, alpha);
+			player.right_foot->rotation = glm::slerp(back_foot_rot, front_foot_rot, 1-alpha);
+		}
+		
 
 		//using a for() instead of a while() here so that if walkpoint gets stuck in
 		// some awkward case, code will not infinite loop:

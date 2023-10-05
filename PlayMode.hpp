@@ -38,5 +38,13 @@ struct PlayMode : Mode {
 		//camera base moves camera with player, allowing camera to ignore player rotation, 
 		// and player to move without camera vertical rotation
 		Scene::Transform *camera_base = nullptr;
+
+		Scene::Transform *left_foot = nullptr;
+		Scene::Transform *right_foot = nullptr;
 	} player;
+
+	float const &walk_anim_time = 0.8f;
+	float walk_anim_acc = 0;
+	glm::quat const back_foot_rot = glm::angleAxis(-1.5f, glm::vec3(0,1,0));
+	glm::quat const front_foot_rot = glm::angleAxis(1.0f, glm::vec3(0,1,0));
 };
