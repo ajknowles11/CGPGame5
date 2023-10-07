@@ -57,6 +57,8 @@ struct PlayMode : Mode {
 	std::vector<Scene::Transform*> fires;
 	std::vector<Scene::Transform*> woods;
 
+	std::vector<Scene::AnimatedDrawable *> flames;
+
 	int num_placed = 0;
 
 	float const walk_anim_time = 0.8f;

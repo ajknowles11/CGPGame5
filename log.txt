@@ -1,5 +1,0 @@
-Code page is properly set to UTF-8.
-Audio output initialized.
-Ignoring non-perspective camera (orth) stored in file.
-Code page is properly set to UTF-8.
-Audio output initialized.

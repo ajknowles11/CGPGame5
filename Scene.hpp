@@ -52,6 +52,7 @@ struct Scene {
 	struct Drawable {
 		//a 'Drawable' attaches attribute data to a transform:
 		Drawable(Transform *transform_) : transform(transform_) { assert(transform); }
+		virtual ~Drawable() {}
 		Transform * transform;
 
 		//Contains all the data needed to run the OpenGL pipeline:
@@ -79,6 +80,17 @@ struct Scene {
 				GLenum target = GL_TEXTURE_2D;
 			} textures[TextureCount];
 		} pipeline;
+	};
+
+	struct AnimatedDrawable : Drawable {
+		AnimatedDrawable(Transform *transform_) : Drawable(transform_) { assert(transform); }
+		bool visited = false;
+		float anim_time_acc = 0;
+		int num_frames = 0;
+		float frame_time = 0;
+		glm::vec2 per_frame_offset = glm::vec2(0);
+		int start_loop_frame = 0;
+		GLuint Frame_Offset_vec2 = -1U;
 	};
 
 	struct Camera {
@@ -132,14 +144,19 @@ struct Scene {
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;
+	std::list< AnimatedDrawable > transparents;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
 	void draw(Camera const &camera) const;
+	void draw(std::list< Drawable > const &to_draw, Camera const &camera) const;
 
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
-	void draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
+	void draw(std::list< Drawable > const &to_draw, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
+
+	void draw(std::list< AnimatedDrawable > const &to_draw, Camera const &camera) const;
+	void Scene::draw(std::list< AnimatedDrawable > const &to_draw, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:

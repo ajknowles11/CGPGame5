@@ -1,6 +1,7 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "VFXProgram.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
@@ -14,9 +15,11 @@
 #include <random>
 
 GLuint mountain_meshes_for_lit_color_texture_program = 0;
+GLuint mountain_meshes_for_vfx_program = 0;
 Load< MeshBuffer > mountain_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("mountain.pnct"));
 	mountain_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	mountain_meshes_for_vfx_program = ret->make_vao_for_program(vfx_program->program);
 	return ret;
 });
 
@@ -28,19 +31,36 @@ Load< Scene::Texture > mountain_texture(LoadTagDefault, []() -> Scene::Texture c
 	return new Scene::Texture(data_path("mountain_texture.png"));
 });
 
+Load< Scene::Texture > flame_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("fire.png"));
+});
+
 Load< Scene > mountain_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("mountain.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = mountain_meshes->lookup(mesh_name);
+		
+		if (mesh_name.substr(0,5) == "Flame") {
+			scene.transparents.emplace_back(transform);
+			Scene::Drawable &drawable = scene.transparents.back();
 
-		scene.drawables.emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawables.back();
+			drawable.pipeline = vfx_program_pipeline;
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
+			drawable.pipeline.vao = mountain_meshes_for_vfx_program;
+			drawable.pipeline.type = mesh.type;
+			drawable.pipeline.start = mesh.start;
+			drawable.pipeline.count = mesh.count;
+		}
+		else {
+			scene.drawables.emplace_back(transform);
+			Scene::Drawable &drawable = scene.drawables.back();
 
-		drawable.pipeline.vao = mountain_meshes_for_lit_color_texture_program;
-		drawable.pipeline.type = mesh.type;
-		drawable.pipeline.start = mesh.start;
-		drawable.pipeline.count = mesh.count;
+			drawable.pipeline = lit_color_texture_program_pipeline;
+
+			drawable.pipeline.vao = mountain_meshes_for_lit_color_texture_program;
+			drawable.pipeline.type = mesh.type;
+			drawable.pipeline.start = mesh.start;
+			drawable.pipeline.count = mesh.count;
+		}
 
 	});
 });
@@ -85,10 +105,14 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 			mountain_mesh = &drawable;
 		}
 	}
+	for (auto &vfx : scene.transparents) {
+		if (vfx.transform->name.substr(0, 5) == "Flame") { // I actually know this is always true since nothing else is transparent, but whatever
+			flames.emplace_back(&vfx);
+		}
+	}
 
 	{ //player tex
 		GLuint tex = 0;
-		glGenTextures(1, &tex);
 		glGenTextures(1, &tex);
 
 		glBindTexture(GL_TEXTURE_2D, tex);
@@ -106,7 +130,6 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 	{ //mountain tex
 		GLuint tex = 0;
 		glGenTextures(1, &tex);
-		glGenTextures(1, &tex);
 
 		glBindTexture(GL_TEXTURE_2D, tex);
 		mountain_mesh->pipeline.textures->texture = tex;
@@ -118,6 +141,30 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	{ //fire tex
+		for (auto &flame : flames) {	
+			GLuint tex = 0;
+			glGenTextures(1, &tex);
+
+			glBindTexture(GL_TEXTURE_2D, tex);
+			flame->pipeline.textures->texture = tex;
+			
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, flame_texture->size.x, flame_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, flame_texture->pixels.data());
+			
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			flame->Frame_Offset_vec2 = vfx_program->FrameOffset_vec2;
+			flame->start_loop_frame = 1;
+			flame->num_frames = 6;
+			flame->frame_time = 0.1f;
+			flame->per_frame_offset = glm::vec2(1.0f/6.0f, 0.0f);
+		}
 	}
 
 	//create a player camera attached to a child of the player transform:
@@ -362,6 +409,18 @@ void PlayMode::update(float elapsed) {
 			}
 
 			num_placed += 2;
+			flames[i]->visited = true;
+		}
+	}
+
+	{ //animate fire
+		for (auto &flame : flames) {
+			if (flame->visited) {
+				flame->anim_time_acc += elapsed;
+				while (flame->anim_time_acc >= flame->num_frames * flame->frame_time) {
+					flame->anim_time_acc -= (flame->num_frames - flame->start_loop_frame) * flame->frame_time;
+				}
+			}
 		}
 	}
 
@@ -391,7 +450,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
 
-	scene.draw(*player.camera);
+	scene.draw(scene.drawables, *player.camera);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+
+	scene.draw(scene.transparents, *player.camera);
+
+	glDisable(GL_BLEND);
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{
