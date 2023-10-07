@@ -225,7 +225,7 @@ void Scene::draw(std::list< AnimatedDrawable > const &to_draw, glm::mat4 const &
 		}
 
 		glm::vec2 const &offset = glm::floor(drawable.anim_time_acc / drawable.frame_time) * drawable.per_frame_offset;
-		glUniform2f(drawable.Frame_Offset_vec2, offset.x, offset.y);std::cout << offset.x << "\n";
+		glUniform2f(drawable.Frame_Offset_vec2, offset.x, offset.y);
 
 		//set any requested custom uniforms:
 		if (pipeline.set_uniforms) pipeline.set_uniforms();
