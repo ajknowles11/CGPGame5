@@ -172,7 +172,7 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 	player.camera = &scene.cameras.back();
 
 	//start player walking at nearest walk point:
-	player.at = walkmesh->nearest_walk_point(player.transform->position);
+	player.at = walkmesh->nearest_walk_point(flames[0]->transform->make_local_to_world() * glm::vec4(flames[0]->transform->position, 1));
 
 }
 
@@ -420,6 +420,9 @@ void PlayMode::update(float elapsed) {
 				while (flame->anim_time_acc >= flame->num_frames * flame->frame_time) {
 					flame->anim_time_acc -= (flame->num_frames - flame->start_loop_frame) * flame->frame_time;
 				}
+
+				//rotate to face camera
+				flame->transform->rotation = glm::mat4(flame->transform->parent->make_world_to_local()) * glm::mat4(glm::angleAxis(glm::roll(player.camera_base->rotation), glm::vec3(0,0,1)));
 			}
 		}
 	}
