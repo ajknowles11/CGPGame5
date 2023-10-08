@@ -156,7 +156,7 @@ struct Scene {
 	void draw(std::list< Drawable > const &to_draw, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
 
 	void draw(std::list< AnimatedDrawable > const &to_draw, Camera const &camera) const;
-	void Scene::draw(std::list< AnimatedDrawable > const &to_draw, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
+	void draw(std::list< AnimatedDrawable > const &to_draw, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
