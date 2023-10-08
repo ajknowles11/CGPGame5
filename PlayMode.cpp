@@ -394,7 +394,7 @@ void PlayMode::update(float elapsed) {
 		player.camera_base->position = player.transform->position;
 	}
 
-	constexpr float fire_radius = 2.0f;
+	constexpr float fire_radius = 3.0f;
 	for (size_t i = 0; i < fires.size(); i++) {
 		if (flames[i]->visited) continue;
 		if (glm::distance(player.transform->position, fires[i]->make_local_to_world() * glm::vec4(fires[i]->position,1.0f)) < fire_radius) {
