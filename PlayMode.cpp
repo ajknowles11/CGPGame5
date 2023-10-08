@@ -172,7 +172,7 @@ PlayMode::PlayMode() : scene(*mountain_scene) {
 	player.camera = &scene.cameras.back();
 
 	//start player walking at nearest walk point:
-	player.at = walkmesh->nearest_walk_point(flames[0]->transform->make_local_to_world() * glm::vec4(flames[0]->transform->position, 1));
+	player.at = walkmesh->nearest_walk_point(player.transform->position);
 
 }
 
