@@ -2,7 +2,8 @@
 
 Author: Andrew Knowles
 
-Design: This game is about placing firewood around a mountain in a third person, orthographic view. There's no fire yet but there's a walkmesh and custom terrain and textures for the player and mountain.
+Design: This game is about placing firewood around a mountain in a third person, orthographic view. There's a walkmesh with custom terrain and textures for the player and mountain.
+Also, we now have animated fire!
 
 Screen Shot:
 
